@@ -1,3 +1,10 @@
+<#Status: Working on fixing the INSTALL portion of the VM - it should install
+ and run the ISO and save the copy on the VHD to make our first differencing VHDX but it appears that there may be problems with the 
+ way Windows 11 may require TPM 2.0 and UEFI Secure Boot...trouble shooting why the ISO from microsoft isn't working ...once we create
+ a successful boot we can see how we can automate creating a VHDX for differencing so we can create multiple VM's using a param block and 
+ a FOR loop
+ #>
+
 #https://www.nakivo.com/blog/use-hyper-v-differencing-disks-complete-guide/ reference
 #https://www.nakivo.com/blog/create-hyper-v-virtual-machine-complete-walkthrough/
 
@@ -5,13 +12,20 @@
 
 #set the childPath of where the file will be saved at
 $VHDPath = "B:\VM_OS_VHD\VHD\"
-$isoPath = "B:\VM_OS_VHD\Win11_22H2_English_x64v2.iso"
+$isoPath = "B:\VM_OS_VHD\OS\Win11_22H2_English_x64v2.iso"
 $VMPath = "B:\VM_OS_VHD\VM\"
 
-#!!!!! we left off here - we need to fix the creation of a VHD then adding the VHD to the VM then we need to create a VHD out of the existing VM; additionally we have to have the program check if the VHD/VM exists in the files, if it does just skip to creating the other VMs
+#WE ARE HERE
+
 $templateVHDPath = $vhdpath + "Template.vhdx"
-New-VHD -Path $templateVHDPath -Dynamic -SizeBytes "80GB"
-New-VM -Name "TMPLT" -MemoryStartupBytes 4GB -BootDevice CD -Generation 2 -ComputerName "TemplateVHD" -path "B:\VM_OS_VHD\VM"  -NewVHDPath $templateVHDPath
+New-VHD -Path $templateVHDPath -Dynamic -SizeBytes 80GB
+New-VM -Name "TMPLT" -MemoryStartupBytes 4GB -Generation 2 -path "B:\VM_OS_VHD\VM" -VHDPath $templateVHDPath
+
+#add the cd drive after the fact
+
+Add-VMDvdDrive -VMName "TMPLT" 
+$dvdDrive = Get-VMDvdDrive -VMName "TMPLT"
+Set-VMDvdDrive -VMName "TMPLT" -Path $isoPath -ControllerNumber $dvdDrive.ControllerNumber -ControllerLocation $dvdDrive.ControllerLocation
 
 $VMFolderContents = Get-ChildItem -Path $VMPath
 
